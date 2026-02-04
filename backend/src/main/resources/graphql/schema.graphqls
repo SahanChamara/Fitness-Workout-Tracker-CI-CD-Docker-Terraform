@@ -1,0 +1,215 @@
+scalar DateTime
+scalar JSON
+
+type Query {
+    me: User
+    user(id: ID, username: String): User
+    
+    workout(id: ID!): Workout
+    userWorkouts(userId: ID!, page: Int, size: Int): WorkoutPage
+    
+    routine(id: ID!): Routine
+    userRoutines(userId: ID!): [Routine]
+    
+    exercises(query: String): [Exercise]
+    exercise(id: ID!): Exercise
+    
+    feed(page: Int, size: Int): FeedSlice
+    
+    comments(parentType: ParentType!, parentId: ID!, page: Int, size: Int): CommentPage
+}
+
+type Mutation {
+    # Auth
+    signup(input: SignupInput!): AuthPayload
+    login(input: LoginInput!): AuthPayload
+    refreshToken(token: String!): AuthPayload
+    
+    # Workouts
+    createWorkout(input: CreateWorkoutInput!): Workout
+    deleteWorkout(id: ID!): Boolean
+    
+    # Social
+    follow(userId: ID!): Boolean
+    unfollow(userId: ID!): Boolean
+    
+    like(parentType: ParentType!, parentId: ID!): Boolean
+    
+    addComment(input: AddCommentInput!): Comment
+    deleteComment(id: ID!): Boolean
+    
+    # Media
+    presignUpload(contentType: String!, folder: String!): PresignedUrl
+    
+    # User
+    updateProfile(input: UpdateProfileInput!): User
+}
+
+type User {
+    id: ID!
+    username: String!
+    email: String!
+    displayName: String
+    bio: String
+    avatarUrl: String
+    followersCount: Int
+    followingCount: Int
+    status: String
+    createdAt: DateTime
+    
+    # Contextual
+    isFollowing: Boolean
+}
+
+type Workout {
+    id: ID!
+    user: User!
+    title: String
+    notes: String
+    startTime: DateTime!
+    endTime: DateTime
+    durationSeconds: Int
+    caloriesBurned: Int
+    isPrivate: Boolean
+    mediaUrls: JSON
+    exercises: [WorkoutExercise]
+    createdAt: DateTime
+    
+    # Contextual
+    likeCount: Int
+    commentCount: Int
+    isLiked: Boolean
+}
+
+type WorkoutExercise {
+    id: ID!
+    exercise: Exercise!
+    sets: Int
+    reps: Int
+    weightKg: Float
+    durationSeconds: Int
+    orderIndex: Int
+    notes: String
+}
+
+type Exercise {
+    id: ID!
+    name: String!
+    category: String!
+    description: String
+    mediaUrl: String
+    createdBy: User
+}
+
+type Routine {
+    id: ID!
+    owner: User!
+    title: String!
+    description: String
+    isPublic: Boolean
+    exercises: [RoutineExercise]
+    createdAt: DateTime
+}
+
+type RoutineExercise {
+    id: ID!
+    exercise: Exercise!
+    orderIndex: Int
+    sets: Int
+    reps: Int
+    durationSeconds: Int
+    restSeconds: Int
+    notes: String
+}
+
+type Comment {
+    id: ID!
+    user: User!
+    content: String!
+    createdAt: DateTime
+}
+
+type ActivityFeed {
+    id: ID!
+    originUser: User!
+    type: String!
+    payload: JSON
+    createdAt: DateTime
+}
+
+type FeedSlice {
+    content: [ActivityFeed]
+    hasNext: Boolean
+}
+
+type WorkoutPage {
+    content: [Workout]
+    totalPages: Int
+    totalElements: Int
+}
+
+type CommentPage {
+    content: [Comment]
+    totalPages: Int
+    totalElements: Int
+}
+
+type AuthPayload {
+    token: String!
+    username: String!
+}
+
+type PresignedUrl {
+    putUrl: String!
+    publicUrl: String!
+    key: String!
+}
+
+input SignupInput {
+    username: String!
+    email: String!
+    password: String!
+    displayName: String
+}
+
+input LoginInput {
+    username: String!
+    password: String!
+}
+
+input CreateWorkoutInput {
+    title: String
+    notes: String
+    startTime: DateTime!
+    endTime: DateTime
+    isPrivate: Boolean
+    exercises: [WorkoutExerciseInput]
+}
+
+input WorkoutExerciseInput {
+    exerciseId: ID!
+    sets: Int
+    reps: Int
+    weightKg: Float
+    durationSeconds: Int
+    orderIndex: Int!
+    notes: String
+}
+
+input AddCommentInput {
+    parentType: ParentType!
+    parentId: ID!
+    content: String!
+}
+
+input UpdateProfileInput {
+    displayName: String
+    bio: String
+    avatarUrl: String
+}
+
+enum ParentType {
+    WORKOUT
+    ROUTINE
+    COMMENT
+}

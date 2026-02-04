@@ -1,0 +1,117 @@
+/.idea/.gitignore
+/.idea/compiler.xml
+/.idea/copilot.data.migration.agent.xml
+/Backend/Knowledge-Sharing-Platform/.idea/copilot.data.migration.agent.xml
+/.idea/copilot.data.migration.ask.xml
+/Backend/Knowledge-Sharing-Platform/.idea/copilot.data.migration.ask.xml
+/.idea/copilot.data.migration.ask2agent.xml
+/.idea/copilot.data.migration.edit.xml
+/Backend/Knowledge-Sharing-Platform/.idea/copilot.data.migration.edit.xml
+/.idea/dbnavigator.xml
+/.idea/encodings.xml
+/.idea/GraphQl Practise Project.iml
+/.idea/jarRepositories.xml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml
+
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependency directories
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+dist-ssr/
+build/
+out/
+.temp/
+.cache/
+.next/
+.nuxt/
+.svelte-kit/
+vite-dist/
+
+# Local environment
+*.local
+.env
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDEs and editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# TypeScript / JS cache
+*.tsbuildinfo
+*.eslintcache
+*.parcel-cache
+.cache-loader
+
+# Coverage reports
+coverage/
+*.lcov
+
+# Miscellaneous
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Frontend specific
+/.firebase/
+.vercel/
+.netlify/
+.storybook/
+*.tsbuildinfo
+
+# Backend specific (Node/Express/Nest)
+uploads/
+storage/
+database.sqlite
+*.pid
+*.seed
+*.log
+
+# Optional - Docker
+docker-compose.override.yml
+**/.docker/
+
+# Optional - AWS / Cloud
+.aws/
+.aws-sam/
+.serverless/
+amplify/
+
+# Optional - Java (if backend includes Spring Boot)
+*.class
+target/
+*.jar
+*.war
+*.ear
+
+# Optional - Python (if using ML or scripts)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
