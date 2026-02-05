@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { NotificationsDropdown } from "@/components/features/social/notifications-dropdown";
 import { useState } from "react";
 
 const sidebarItems = [
@@ -134,6 +135,7 @@ export default function DashboardLayout({
                     <div className="w-full flex-1">
                         {/* Search or Breadcrumbs could go here */}
                     </div>
+                    <NotificationsDropdown />
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="secondary" size="icon" className="rounded-full">
