@@ -1,10 +1,19 @@
 spring:
   application:
     name: fitness-backend
+  cloud:
+    aws:
+      region:
+        static: us-east-1
+      credentials:
+        access-key: ${AWS_ACCESS_KEY:dummy}
+        secret-key: ${AWS_SECRET_KEY:dummy}
+      s3:
+        enabled: false
   datasource:
     url: jdbc:postgresql://localhost:5432/fitness_db
     username: postgres
-    password: password
+    password: 1234
   jpa:
     hibernate:
       ddl-auto: validate
@@ -14,9 +23,15 @@ spring:
   graphql:
     graphiql:
       enabled: true
+      path: /graphiql
+    path: /graphql
   flyway:
     enabled: true
     baseline-on-migrate: true
+
+  output:
+    ansi:
+      enabled: always
 
 server:
   port: 8080
