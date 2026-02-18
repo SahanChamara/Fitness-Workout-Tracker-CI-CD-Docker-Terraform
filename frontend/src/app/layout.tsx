@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,11 +15,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Fitness & Workout Tracker",
   description: "Track your fitness journey, log workouts, and connect with the fitness community",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 import { ApolloWrapper } from "@/components/apollo-provider";
