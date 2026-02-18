@@ -3,6 +3,7 @@ package com.fitness.service;
 import io.awspring.cloud.s3.S3Template;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.net.URL;
@@ -11,11 +12,12 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@ConditionalOnBean(S3Template.class)
 public class MediaService {
 
     private final S3Template s3Template;
 
-    @Value("${spring.cloud.aws.s3.bucket}")
+    @Value("${spring.cloud.aws.s3.bucket:fitness-bucket}")
     private String bucketName;
 
     public PresignedUrl presignUpload(String contentType, String folder) {

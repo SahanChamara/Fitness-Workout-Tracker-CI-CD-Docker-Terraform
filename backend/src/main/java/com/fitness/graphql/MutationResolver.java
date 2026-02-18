@@ -3,6 +3,7 @@ package com.fitness.graphql;
 import com.fitness.model.*;
 import com.fitness.service.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,8 +22,10 @@ public class MutationResolver {
     private final FollowService followService;
     private final LikeService likeService;
     private final CommentService commentService;
-    private final MediaService mediaService;
     private final UserService userService;
+
+    @Autowired(required = false)
+    private MediaService mediaService;
 
     private User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -97,6 +100,9 @@ public class MutationResolver {
 
     @MutationMapping
     public MediaService.PresignedUrl presignUpload(@Argument String contentType, @Argument String folder) {
+        if (mediaService == null) {
+            throw new IllegalStateException("S3 media service is not configured");
+        }
         return mediaService.presignUpload(contentType, folder);
     }
 
