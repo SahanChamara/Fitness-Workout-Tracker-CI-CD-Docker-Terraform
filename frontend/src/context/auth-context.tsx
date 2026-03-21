@@ -1,9 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useQuery, useApolloClient, useMutation } from "@/lib/apollo-hooks";
 import { ME_QUERY } from "@/lib/graphql/queries";
-import { REFRESH_TOKEN_MUTATION, LOGOUT_MUTATION } from "@/lib/graphql/mutations";
+import { REFRESH_TOKEN_MUTATION } from "@/lib/graphql/mutations";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,25 +17,34 @@ interface User {
 
 interface AuthTokens {
     accessToken: string;
-    refreshToken: string;
 }
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (tokens: AuthTokens, userId: string, username: string) => void;
+    login: (tokens: AuthTokens, username: string) => void;
     logout: () => Promise<void>;
     isAuthenticated: boolean;
     refreshAccessToken: () => Promise<boolean>;
+}
+
+interface MeQueryData {
+    me: User | null;
+}
+
+interface RefreshTokenData {
+    refreshToken: {
+        token: string;
+        username: string;
+    };
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Token expiry check - JWT tokens are typically valid for 15 minutes
 const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh 5 minutes before expiry
-const TOKEN_CHECK_INTERVAL = 60 * 1000; // Check every minute
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: Readonly<{ children: React.ReactNode }>) {
     const [tokens, setTokens] = useState<AuthTokens | null>(null);
     const [tokenExpiry, setTokenExpiry] = useState<number | null>(null);
     const router = useRouter();
@@ -44,28 +53,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const isRefreshingRef = useRef(false);
 
-    const [refreshTokenMutation] = useMutation(REFRESH_TOKEN_MUTATION);
-    const [logoutMutation] = useMutation(LOGOUT_MUTATION);
+    const [refreshTokenMutation] = useMutation<RefreshTokenData>(REFRESH_TOKEN_MUTATION);
 
-    // Load tokens from localStorage on mount
+    // Load token from localStorage on mount
     useEffect(() => {
         const storedAccessToken = localStorage.getItem("accessToken");
-        const storedRefreshToken = localStorage.getItem("refreshToken");
         const storedExpiry = localStorage.getItem("tokenExpiry");
 
-        if (storedAccessToken && storedRefreshToken) {
+        if (storedAccessToken) {
             setTokens({
                 accessToken: storedAccessToken,
-                refreshToken: storedRefreshToken,
             });
             if (storedExpiry) {
-                setTokenExpiry(parseInt(storedExpiry, 10));
+                setTokenExpiry(Number.parseInt(storedExpiry, 10));
             }
         }
     }, []);
 
     // Fetch user data when we have a token
-    const { data, loading, error, refetch } = useQuery(ME_QUERY, {
+    const { data, loading, error, refetch } = useQuery<MeQueryData>(ME_QUERY, {
         skip: !tokens?.accessToken,
         fetchPolicy: "network-only",
     });
@@ -81,13 +87,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
+    const clearSessionAndRedirect = useCallback(async () => {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("tokenExpiry");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("username");
+
+        setTokens(null);
+        setTokenExpiry(null);
+
+        if (refreshTimeoutRef.current) {
+            clearTimeout(refreshTimeoutRef.current);
+        }
+
+        await client.resetStore();
+        router.push("/login");
+    }, [client, router]);
+
     // Refresh access token
     const refreshAccessToken = useCallback(async (): Promise<boolean> => {
         if (isRefreshingRef.current) {
             return false;
         }
 
-        if (!tokens?.refreshToken) {
+        if (!tokens?.accessToken) {
             return false;
         }
 
@@ -95,21 +118,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         try {
             const { data: refreshData } = await refreshTokenMutation({
-                variables: { refreshToken: tokens.refreshToken },
+                variables: { token: tokens.accessToken },
             });
 
             if (refreshData?.refreshToken) {
-                const newAccessToken = refreshData.refreshToken.accessToken;
-                const newRefreshToken = refreshData.refreshToken.refreshToken;
+                const newAccessToken = refreshData.refreshToken.token;
                 const expiry = decodeTokenExpiry(newAccessToken);
 
                 localStorage.setItem("accessToken", newAccessToken);
-                localStorage.setItem("refreshToken", newRefreshToken);
                 localStorage.setItem("tokenExpiry", expiry.toString());
 
                 setTokens({
                     accessToken: newAccessToken,
-                    refreshToken: newRefreshToken,
                 });
                 setTokenExpiry(expiry);
 
@@ -126,13 +146,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 description: "Please log in again.",
                 variant: "destructive",
             });
-            // Clear tokens and redirect to login
-            await logout();
+            await clearSessionAndRedirect();
             return false;
         } finally {
             isRefreshingRef.current = false;
         }
-    }, [tokens, refreshTokenMutation, decodeTokenExpiry, refetch, toast]);
+    }, [tokens, refreshTokenMutation, decodeTokenExpiry, refetch, toast, clearSessionAndRedirect]);
 
     // Setup automatic token refresh
     useEffect(() => {
@@ -164,7 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     description: "Please log in again.",
                     variant: "destructive",
                 });
-                logout();
+                clearSessionAndRedirect();
             }
         };
 
@@ -176,7 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 clearTimeout(refreshTimeoutRef.current);
             }
         };
-    }, [tokenExpiry, tokens, refreshAccessToken, toast]);
+    }, [tokenExpiry, tokens, refreshAccessToken, toast, clearSessionAndRedirect]);
 
     // Listen for token expiry events from Apollo error link
     useEffect(() => {
@@ -184,10 +203,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             refreshAccessToken();
         };
 
-        window.addEventListener("auth:token-expired", handleTokenExpired);
+        globalThis.addEventListener("auth:token-expired", handleTokenExpired);
 
         return () => {
-            window.removeEventListener("auth:token-expired", handleTokenExpired);
+            globalThis.removeEventListener("auth:token-expired", handleTokenExpired);
         };
     }, [refreshAccessToken]);
 
@@ -196,18 +215,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error && tokens) {
             console.error("Authentication error:", error);
             if (error.message.includes("Unauthorized") || error.message.includes("Invalid token")) {
-                refreshAccessToken();
+                clearSessionAndRedirect();
             }
         }
-    }, [error, tokens, refreshAccessToken]);
+    }, [error, tokens, clearSessionAndRedirect]);
 
-    const login = useCallback((newTokens: AuthTokens, userId: string, username: string) => {
+    const login = useCallback((newTokens: AuthTokens, username: string) => {
         const expiry = decodeTokenExpiry(newTokens.accessToken);
 
         localStorage.setItem("accessToken", newTokens.accessToken);
-        localStorage.setItem("refreshToken", newTokens.refreshToken);
         localStorage.setItem("tokenExpiry", expiry.toString());
-        localStorage.setItem("userId", userId);
         localStorage.setItem("username", username);
 
         setTokens(newTokens);
@@ -218,47 +235,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [decodeTokenExpiry, refetch, router]);
 
     const logout = useCallback(async () => {
-        try {
-            // Call backend logout if we have a refresh token
-            if (tokens?.refreshToken) {
-                await logoutMutation({
-                    variables: { refreshToken: tokens.refreshToken },
-                });
-            }
-        } catch (error) {
-            console.error("Logout error:", error);
-        } finally {
-            // Clear local state regardless of backend response
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
-            localStorage.removeItem("tokenExpiry");
-            localStorage.removeItem("userId");
-            localStorage.removeItem("username");
+        await clearSessionAndRedirect();
+    }, [clearSessionAndRedirect]);
 
-            setTokens(null);
-            setTokenExpiry(null);
-
-            if (refreshTimeoutRef.current) {
-                clearTimeout(refreshTimeoutRef.current);
-            }
-
-            // Reset Apollo cache
-            await client.resetStore();
-
-            router.push("/login");
-        }
-    }, [tokens, logoutMutation, client, router]);
+    const contextValue = useMemo(
+        () => ({
+            user: data?.me || null,
+            loading: loading && !!tokens,
+            login,
+            logout,
+            isAuthenticated: !!data?.me,
+            refreshAccessToken,
+        }),
+        [data?.me, loading, tokens, login, logout, refreshAccessToken]
+    );
 
     return (
         <AuthContext.Provider
-            value={{
-                user: data?.me || null,
-                loading: loading && !!tokens,
-                login,
-                logout,
-                isAuthenticated: !!data?.me,
-                refreshAccessToken,
-            }}
+            value={contextValue}
         >
             {children}
         </AuthContext.Provider>
