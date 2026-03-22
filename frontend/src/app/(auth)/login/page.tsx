@@ -36,7 +36,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
     const { login } = useAuth();
-    const [loginMutation, { loading }] = useMutation<{ login: { accessToken: string; refreshToken: string; userId: string; username: string } }>(LOGIN_MUTATION);
+    const [loginMutation, { loading }] = useMutation<{ login: { token: string; username: string } }>(LOGIN_MUTATION);
     const [error, setError] = useState<string | null>(null);
 
     const form = useForm<LoginFormValues>({
@@ -59,14 +59,9 @@ export default function LoginPage() {
                 },
             });
 
-            // @ts-ignore
-            if (response.data?.login?.accessToken) {
-                const { accessToken, refreshToken, userId, username } = response.data.login;
-                login(
-                    { accessToken, refreshToken },
-                    userId,
-                    username
-                );
+            if (response.data?.login?.token) {
+                const { token, username } = response.data.login;
+                login({ accessToken: token }, username);
             }
         } catch (err: any) {
             setError(err.message || "Invalid credentials");
