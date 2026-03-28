@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UPDATE_PROFILE_MUTATION, GET_CURRENT_USER } from "@/lib/graphql/settings";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -94,10 +94,6 @@ export default function ProfilePage() {
         }
     };
 
-    const handleAvatarUpload = (url: string) => {
-        form.setValue("avatarUrl", url);
-    };
-
     if (!user) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
@@ -129,11 +125,6 @@ export default function ProfilePage() {
                     <CardDescription>
                         Update your profile details and avatar
                     </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    >
-                        {isEditing ? "Cancel" : "Edit Profile"}
-                    </Button>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
