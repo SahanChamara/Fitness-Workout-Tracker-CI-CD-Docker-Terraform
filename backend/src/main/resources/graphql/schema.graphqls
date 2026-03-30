@@ -6,7 +6,7 @@ type Query {
     user(id: ID, username: String): User
     
     workout(id: ID!): Workout
-    userWorkouts(userId: ID!, page: Int, size: Int): WorkoutPage
+    userWorkouts(userId: ID, page: Int, size: Int): WorkoutPage
     
     routine(id: ID!): Routine
     userRoutines(userId: ID!): [Routine]

@@ -16,11 +16,11 @@ import Link from "next/link";
 import { format } from "date-fns";
 
 export default function WorkoutsPage() {
-    const { user, loading: authLoading } = useAuth();
+    const { loading: authLoading } = useAuth();
 
     const { data, loading, error } = useQuery(GET_USER_WORKOUTS, {
-        variables: { userId: user?.id, page: 0, size: 10 },
-        skip: authLoading || !user?.id,
+        variables: { page: 0, size: 10 },
+        skip: authLoading,
     });
 
     if (authLoading || loading) return <div>Loading workouts...</div>;

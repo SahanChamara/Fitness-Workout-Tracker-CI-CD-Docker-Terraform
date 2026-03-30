@@ -47,7 +47,12 @@ public class QueryResolver {
 
     @QueryMapping
     public WorkoutPage userWorkouts(@Argument Long userId, @Argument int page, @Argument int size) {
-        var result = workoutService.getUserWorkouts(userId,
+        Long resolvedUserId = userId;
+        if (resolvedUserId == null) {
+            resolvedUserId = me().getId();
+        }
+
+        var result = workoutService.getUserWorkouts(resolvedUserId,
                 PageRequest.of(page, size, Sort.by("startTime").descending()));
         return new WorkoutPage(result.getContent(), result.getTotalPages(), (int) result.getTotalElements());
     }

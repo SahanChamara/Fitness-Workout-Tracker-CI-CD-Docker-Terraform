@@ -1,7 +1,7 @@
 import { gql } from "@/lib/apollo-hooks";
 
 export const GET_USER_WORKOUTS = gql`
-  query GetUserWorkouts($userId: ID!, $page: Int, $size: Int) {
+  query GetUserWorkouts($userId: ID, $page: Int, $size: Int) {
     userWorkouts(userId: $userId, page: $page, size: $size) {
       content {
         id
