@@ -2,6 +2,7 @@
 
 import { useQuery } from "@/lib/apollo-hooks";
 import { GET_USER_WORKOUTS } from "@/lib/graphql/workouts";
+import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -15,11 +16,14 @@ import Link from "next/link";
 import { format } from "date-fns";
 
 export default function WorkoutsPage() {
+    const { loading: authLoading } = useAuth();
+
     const { data, loading, error } = useQuery(GET_USER_WORKOUTS, {
         variables: { page: 0, size: 10 },
+        skip: authLoading,
     });
 
-    if (loading) return <div>Loading workouts...</div>;
+    if (authLoading || loading) return <div>Loading workouts...</div>;
     if (error) return <div>Error loading workouts</div>;
 
     const workouts = data?.userWorkouts?.content || [];

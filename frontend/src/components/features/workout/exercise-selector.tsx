@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@/lib/apollo-hooks";
 import { GET_EXERCISES } from "@/lib/graphql/exercises";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
