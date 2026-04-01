@@ -1,7 +1,8 @@
 package com.fitness.service;
 
-import com.fitness.config.JwtAuthenticationFilter;
+import com.fitness.model.Session;
 import com.fitness.model.User;
+import com.fitness.repository.SessionRepository;
 import com.fitness.repository.UserRepository;
 import com.fitness.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +10,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,7 +24,9 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private final SessionRepository sessionRepository;
 
+    @Transactional
     public Map<String, String> signup(String username, String email, String password, String displayName) {
         if (userRepository.existsByUsername(username)) {
             throw new RuntimeException("Username already exists");
@@ -41,12 +46,16 @@ public class AuthService {
         userRepository.save(user);
 
         String token = jwtUtil.generateToken(user);
+        String refreshToken = jwtUtil.generateRefreshToken(user);
+        persistSession(user, refreshToken, "web-signup");
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
+        response.put("refreshToken", refreshToken);
         response.put("username", username);
         return response;
     }
 
+    @Transactional
     public Map<String, String> login(String username, String password) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(username, password));
@@ -55,25 +64,73 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         String token = jwtUtil.generateToken(user);
+        String refreshToken = jwtUtil.generateRefreshToken(user);
+        persistSession(user, refreshToken, "web-login");
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
+        response.put("refreshToken", refreshToken);
         response.put("username", username);
         return response;
     }
 
-    public Map<String, String> refreshToken(String token) {
-        String username = jwtUtil.extractUsername(token);
+    @Transactional
+    public Map<String, String> refreshToken(String refreshToken) {
+        String username = jwtUtil.extractUsername(refreshToken);
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (jwtUtil.isTokenValid(token, user)) {
-            String newToken = jwtUtil.generateToken(user);
-            Map<String, String> response = new HashMap<>();
-            response.put("token", newToken);
-            response.put("username", username);
-            return response;
-        } else {
-            throw new RuntimeException("Invalid token");
+        if (!jwtUtil.isTokenValid(refreshToken, user)) {
+            throw new RuntimeException("Invalid refresh token");
         }
+
+        Session currentSession = sessionRepository.findByUserId(user.getId()).stream()
+                .filter(session -> passwordEncoder.matches(refreshToken, session.getRefreshTokenHash()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+
+        if (currentSession.getRevokedAt() != null) {
+            throw new RuntimeException("Refresh token has been revoked");
+        }
+
+        if (currentSession.getExpiresAt().isBefore(OffsetDateTime.now())) {
+            throw new RuntimeException("Refresh token has expired");
+        }
+
+        String newAccessToken = jwtUtil.generateToken(user);
+        String newRefreshToken = jwtUtil.generateRefreshToken(user);
+        String newRefreshHash = passwordEncoder.encode(newRefreshToken);
+
+        currentSession.setRevokedAt(OffsetDateTime.now());
+        currentSession.setReplacedByHash(newRefreshHash);
+        sessionRepository.save(currentSession);
+
+        sessionRepository.save(Session.builder()
+                .user(user)
+                .refreshTokenHash(newRefreshHash)
+                .deviceInfo("web-refresh")
+                .expiresAt(OffsetDateTime.now().plusDays(7))
+                .build());
+
+        Map<String, String> response = new HashMap<>();
+        response.put("token", newAccessToken);
+        response.put("refreshToken", newRefreshToken);
+        response.put("username", username);
+        return response;
+    }
+
+    @Transactional
+    public void logoutAllSessions(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        sessionRepository.deleteByUserId(user.getId());
+    }
+
+    private void persistSession(User user, String refreshToken, String deviceInfo) {
+        sessionRepository.save(Session.builder()
+                .user(user)
+                .refreshTokenHash(passwordEncoder.encode(refreshToken))
+                .deviceInfo(deviceInfo)
+                .expiresAt(OffsetDateTime.now().plusDays(7))
+                .build());
     }
 }

@@ -72,6 +72,43 @@ public class WorkoutService {
     }
 
     @Transactional
+    public Workout updateWorkout(Long workoutId, Long userId, String title, String notes, OffsetDateTime startTime,
+            OffsetDateTime endTime, Boolean isPrivate, List<WorkoutExerciseInput> exercises) {
+        Workout workout = getWorkoutById(workoutId);
+        if (!workout.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Not authorized to edit this workout");
+        }
+
+        workout.setTitle(title);
+        workout.setNotes(notes);
+        workout.setStartTime(startTime);
+        workout.setEndTime(endTime);
+        workout.setIsPrivate(isPrivate != null ? isPrivate : Boolean.FALSE);
+
+        workout.getExercises().clear();
+        if (exercises != null) {
+            for (WorkoutExerciseInput input : exercises) {
+                Exercise exercise = exerciseRepository.findById(input.exerciseId())
+                        .orElseThrow(() -> new RuntimeException("Exercise not found"));
+
+                WorkoutExercise workoutExercise = WorkoutExercise.builder()
+                        .workout(workout)
+                        .exercise(exercise)
+                        .sets(input.sets())
+                        .reps(input.reps())
+                        .weightKg(input.weightKg())
+                        .durationSeconds(input.durationSeconds())
+                        .orderIndex(input.orderIndex())
+                        .notes(input.notes())
+                        .build();
+                workout.getExercises().add(workoutExercise);
+            }
+        }
+
+        return workoutRepository.save(workout);
+    }
+
+    @Transactional
     public void deleteWorkout(Long workoutId, Long userId) {
         Workout workout = getWorkoutById(workoutId);
         if (!workout.getUser().getId().equals(userId)) {

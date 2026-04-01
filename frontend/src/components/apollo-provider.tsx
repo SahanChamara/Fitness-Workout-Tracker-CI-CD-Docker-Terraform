@@ -11,14 +11,15 @@ import { ApolloLink } from "@/lib/apollo-hooks";
 import { AuthProvider } from "@/context/auth-context";
 import { setContext } from "@apollo/client/link/context";
 import { onError } from "@apollo/client/link/error";
+import { getAccessToken } from "@/lib/auth-token";
 
 function makeClient() {
     const httpLink = new HttpLink({
-        uri: "http://localhost:8080/graphql",
+        uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || "http://localhost:8080/graphql",
     });
 
     const authLink = setContext((_, { headers }) => {
-        const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+        const token = typeof window !== "undefined" ? getAccessToken() : null;
         return {
             headers: {
                 ...headers,

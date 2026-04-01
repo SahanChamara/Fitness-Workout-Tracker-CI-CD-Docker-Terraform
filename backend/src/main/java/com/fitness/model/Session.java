@@ -30,4 +30,10 @@ public class Session extends BaseEntity {
 
     @Column(name = "expires_at", nullable = false)
     private OffsetDateTime expiresAt;
+
+    @Column(name = "revoked_at")
+    private OffsetDateTime revokedAt;
+
+    @Column(name = "replaced_by_hash")
+    private String replacedByHash;
 }

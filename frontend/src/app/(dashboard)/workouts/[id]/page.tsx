@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@/lib/apollo-hooks";
-import { GET_WORKOUT } from "@/lib/graphql/workouts";
+import { GET_WORKOUT, UPDATE_WORKOUT_MUTATION } from "@/lib/graphql/workouts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,10 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { DeleteWorkoutDialog } from "@/components/features/workout/delete-workout-dialog";
+import { useMutation } from "@/lib/apollo-hooks";
+import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 interface PageProps {
   params: {
@@ -20,9 +24,14 @@ interface PageProps {
 
 export default function WorkoutDetailPage({ params }: PageProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const { data, loading, error } = useQuery(GET_WORKOUT, {
     variables: { id: params.id },
   });
+  const [updateWorkout, { loading: updating }] = useMutation(UPDATE_WORKOUT_MUTATION);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editNotes, setEditNotes] = useState("");
 
   if (loading) {
     return (
@@ -58,6 +67,46 @@ export default function WorkoutDetailPage({ params }: PageProps) {
     ? Math.floor(workout.durationSeconds / 60)
     : null;
 
+  const handleEditOpen = () => {
+    setEditTitle(workout.title || "");
+    setEditNotes(workout.notes || "");
+    setIsEditOpen(true);
+  };
+
+  const handleUpdateWorkout = async () => {
+    try {
+      await updateWorkout({
+        variables: {
+          id: workout.id,
+          input: {
+            title: editTitle,
+            notes: editNotes,
+            startTime: workout.startTime,
+            endTime: workout.endTime,
+            isPrivate: workout.isPrivate,
+            exercises: (workout.exercises || []).map((item: any) => ({
+              exerciseId: item.exercise.id,
+              sets: item.sets,
+              reps: item.reps,
+              weightKg: item.weightKg,
+              durationSeconds: item.durationSeconds,
+              orderIndex: item.orderIndex,
+              notes: item.notes,
+            })),
+          },
+        },
+      });
+      setIsEditOpen(false);
+      toast({ title: "Workout updated", description: "Your workout changes were saved." });
+    } catch {
+      toast({
+        title: "Update failed",
+        description: "Could not update workout.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="container max-w-4xl py-8 space-y-6">
       {/* Header */}
@@ -88,7 +137,7 @@ export default function WorkoutDetailPage({ params }: PageProps) {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleEditOpen}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </Button>
@@ -251,6 +300,26 @@ export default function WorkoutDetailPage({ params }: PageProps) {
             ))}
           </div>
         </div>
+      )}
+
+      {isEditOpen && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Edit Workout</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Workout title" />
+            <Input value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Notes" />
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={updating}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateWorkout} disabled={updating}>
+                {updating ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

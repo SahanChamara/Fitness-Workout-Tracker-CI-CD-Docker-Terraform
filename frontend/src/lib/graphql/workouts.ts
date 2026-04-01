@@ -112,3 +112,30 @@ export const DELETE_WORKOUT_MUTATION = gql`
     deleteWorkout(id: $id)
   }
 `;
+
+export const UPDATE_WORKOUT_MUTATION = gql`
+  mutation UpdateWorkout($id: ID!, $input: CreateWorkoutInput!) {
+    updateWorkout(id: $id, input: $input) {
+      id
+      title
+      notes
+      startTime
+      endTime
+      isPrivate
+      exercises {
+        id
+        exercise {
+          id
+          name
+          category
+        }
+        sets
+        reps
+        weightKg
+        durationSeconds
+        orderIndex
+        notes
+      }
+    }
+  }
+`;

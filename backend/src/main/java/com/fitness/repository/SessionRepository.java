@@ -11,6 +11,8 @@ import java.util.Optional;
 @Repository
 public interface SessionRepository extends JpaRepository<Session, Long> {
     Optional<Session> findByUserIdAndRefreshTokenHash(Long userId, String refreshTokenHash);
+    Optional<Session> findByRefreshTokenHash(String refreshTokenHash);
+    List<Session> findByUserId(Long userId);
 
     List<Session> findByExpiresAtBefore(OffsetDateTime now);
 

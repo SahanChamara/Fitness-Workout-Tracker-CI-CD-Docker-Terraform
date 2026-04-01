@@ -24,9 +24,11 @@ type Mutation {
     signup(input: SignupInput!): AuthPayload
     login(input: LoginInput!): AuthPayload
     refreshToken(token: String!): AuthPayload
+    logoutAllSessions: Boolean
     
     # Workouts
     createWorkout(input: CreateWorkoutInput!): Workout
+    updateWorkout(id: ID!, input: CreateWorkoutInput!): Workout
     deleteWorkout(id: ID!): Boolean
     
     # Social
@@ -156,6 +158,7 @@ type CommentPage {
 
 type AuthPayload {
     token: String!
+    refreshToken: String!
     username: String!
 }
 

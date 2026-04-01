@@ -38,7 +38,7 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function SignupPage() {
     const { login } = useAuth();
-    const [signupMutation, { loading }] = useMutation<{ signup: { token: string; username: string } }>(SIGNUP_MUTATION);
+    const [signupMutation, { loading }] = useMutation<{ signup: { token: string; refreshToken: string; username: string } }>(SIGNUP_MUTATION);
     const [error, setError] = useState<string | null>(null);
 
     const form = useForm<SignupFormValues>({
@@ -66,8 +66,8 @@ export default function SignupPage() {
             });
 
             if (response.data?.signup?.token) {
-                const { token, username } = response.data.signup;
-                login({ accessToken: token }, username);
+                const { token, refreshToken, username } = response.data.signup;
+                login({ accessToken: token, refreshToken }, username);
             }
         } catch (err: any) {
             setError(err.message || "Registration failed");
