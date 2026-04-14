@@ -20,15 +20,20 @@ type Query {
 }
 
 type Mutation {
-    # Auth
+    # Creates an account and returns short-lived access + rotating refresh tokens.
     signup(input: SignupInput!): AuthPayload
+    # Authenticates a user and returns access + refresh tokens.
     login(input: LoginInput!): AuthPayload
+    # Exchanges a valid refresh token for a new access/refresh token pair.
     refreshToken(token: String!): AuthPayload
+    # Revokes all refresh sessions for currently authenticated user.
     logoutAllSessions: Boolean
     
-    # Workouts
+    # Creates a workout for the current user.
     createWorkout(input: CreateWorkoutInput!): Workout
+    # Updates an existing workout owned by the current user.
     updateWorkout(id: ID!, input: CreateWorkoutInput!): Workout
+    # Deletes a workout owned by the current user.
     deleteWorkout(id: ID!): Boolean
     
     # Social
@@ -157,7 +162,9 @@ type CommentPage {
 }
 
 type AuthPayload {
+    # Short-lived JWT used in Authorization header.
     token: String!
+    # Rotating refresh token, persisted client-side in secure storage.
     refreshToken: String!
     username: String!
 }
