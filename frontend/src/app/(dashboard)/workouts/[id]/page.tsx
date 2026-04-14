@@ -15,6 +15,39 @@ import { useMutation } from "@/lib/apollo-hooks";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+interface WorkoutExerciseView {
+  id: string;
+  exercise: {
+    id: string;
+    name: string;
+    category?: string;
+  };
+  sets?: number;
+  reps?: number;
+  weightKg?: number;
+  durationSeconds?: number;
+  orderIndex: number;
+  notes?: string;
+}
+
+interface WorkoutView {
+  id: string;
+  title?: string;
+  notes?: string;
+  startTime: string;
+  endTime?: string;
+  durationSeconds?: number;
+  caloriesBurned?: number;
+  isPrivate?: boolean;
+  mediaUrls?: string[];
+  likeCount?: number;
+  commentCount?: number;
+  exercises?: WorkoutExerciseView[];
+}
+
+interface WorkoutQueryData {
+  workout?: WorkoutView;
+}
 
 interface PageProps {
   params: {
@@ -25,7 +58,7 @@ interface PageProps {
 export default function WorkoutDetailPage({ params }: PageProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { data, loading, error } = useQuery(GET_WORKOUT, {
+  const { data, loading, error } = useQuery<WorkoutQueryData>(GET_WORKOUT, {
     variables: { id: params.id },
   });
   const [updateWorkout, { loading: updating }] = useMutation(UPDATE_WORKOUT_MUTATION);
@@ -84,7 +117,7 @@ export default function WorkoutDetailPage({ params }: PageProps) {
             startTime: workout.startTime,
             endTime: workout.endTime,
             isPrivate: workout.isPrivate,
-            exercises: (workout.exercises || []).map((item: any) => ({
+             exercises: (workout.exercises || []).map((item: WorkoutExerciseView) => ({
               exerciseId: item.exercise.id,
               sets: item.sets,
               reps: item.reps,
@@ -217,7 +250,7 @@ export default function WorkoutDetailPage({ params }: PageProps) {
         <h2 className="text-xl font-semibold">Exercises</h2>
         {workout.exercises && workout.exercises.length > 0 ? (
           <div className="space-y-3">
-            {workout.exercises.map((workoutExercise: any, index: number) => (
+            {workout.exercises.map((workoutExercise: WorkoutExerciseView, index: number) => (
               <Card key={workoutExercise.id}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">

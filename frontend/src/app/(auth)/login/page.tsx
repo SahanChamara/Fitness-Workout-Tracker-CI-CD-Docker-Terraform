@@ -63,8 +63,8 @@ export default function LoginPage() {
                 const { token, refreshToken, username } = response.data.login;
                 login({ accessToken: token, refreshToken }, username);
             }
-        } catch (err: any) {
-            setError(err.message || "Invalid credentials");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Invalid credentials");
         }
     };
 
