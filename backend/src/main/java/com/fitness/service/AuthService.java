@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +26,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final SessionRepository sessionRepository;
+    private static final int REFRESH_TOKEN_TTL_DAYS = 7;
 
     @Transactional
     public Map<String, String> signup(String username, String email, String password, String displayName) {
@@ -96,6 +98,10 @@ public class AuthService {
             throw new RuntimeException("Refresh token has expired");
         }
 
+        if (Objects.nonNull(currentSession.getReplacedByHash())) {
+            throw new RuntimeException("Refresh token reuse detected");
+        }
+
         String newAccessToken = jwtUtil.generateToken(user);
         String newRefreshToken = jwtUtil.generateRefreshToken(user);
         String newRefreshHash = passwordEncoder.encode(newRefreshToken);
@@ -108,7 +114,7 @@ public class AuthService {
                 .user(user)
                 .refreshTokenHash(newRefreshHash)
                 .deviceInfo("web-refresh")
-                .expiresAt(OffsetDateTime.now().plusDays(7))
+                .expiresAt(OffsetDateTime.now().plusDays(REFRESH_TOKEN_TTL_DAYS))
                 .build());
 
         Map<String, String> response = new HashMap<>();
@@ -130,7 +136,7 @@ public class AuthService {
                 .user(user)
                 .refreshTokenHash(passwordEncoder.encode(refreshToken))
                 .deviceInfo(deviceInfo)
-                .expiresAt(OffsetDateTime.now().plusDays(7))
+                .expiresAt(OffsetDateTime.now().plusDays(REFRESH_TOKEN_TTL_DAYS))
                 .build());
     }
 }
